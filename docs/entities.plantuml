@@ -1,0 +1,117 @@
+@startuml
+
+hide empty methods
+
+' Enums
+
+enum Actor {
+  bot
+  user
+  system
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  blocked
+  done
+}
+
+enum TaskSource {
+  user
+  ai
+  system
+  template
+  import
+}
+
+enum TaskDialogEventType {
+  task_proposed
+  task_accepted
+  task_started
+  task_progress
+  task_refused
+  task_done
+  task_status_set
+}
+
+enum UserStateEventType {
+  state_set
+  state_cleared
+}
+
+enum UserState {
+  work
+  household
+  rest
+  sleep
+  unavailable
+}
+
+' Classes
+
+class Task {
+  +id: UUID
+  +created_at: timestamp
+  +updated_at: timestamp
+  +parent_id: UUID? <<FK Task.id>>
+  +title: string
+  +status: TaskStatus
+  +actor: Actor
+  +source: TaskSource
+}
+
+class TaskDialogEvent {
+  +id: UUID
+  +created_at: timestamp
+  +task_id: UUID <<FK Task.id>>
+  +type: TaskDialogEventType
+  +actor: Actor
+}
+
+class UserStateEvent {
+  +id: UUID
+  +created_at: timestamp
+  +type: UserStateEventType
+  +state: UserState?
+  +actor: Actor
+}
+
+' Relationships
+
+Task "0..*" <-- "0..1" Task : parent_id
+Task "1" <-- "0..*" TaskDialogEvent : task_id
+Actor --* Task
+Actor --* TaskDialogEvent
+Actor --* UserStateEvent
+TaskStatus --* Task
+TaskSource --* Task
+TaskDialogEventType --* TaskDialogEvent
+UserStateEventType --* UserStateEvent
+UserState --* UserStateEvent
+
+note bottom of Task
+  Invariants:
+  - updated_at >= created_at
+  - parent_id exists if set
+  - parent_id != id
+  - title not 
+  - status, actor, and source are valid
+end note
+
+note bottom of TaskDialogEvent
+  Invariants:
+  - append-only
+  - task_id exists
+  - type and actor are valid
+end note
+
+note bottom of UserStateEvent
+  Invariants:
+  - append-only
+  - type, state (if set), and actor are valid
+  - if type == state_set then state != null
+
+end note
+
+@enduml
