@@ -2,7 +2,7 @@
 
 hide empty methods
 
-' Enums
+' Common types
 
 enum Actor {
   bot
@@ -10,100 +10,104 @@ enum Actor {
   system
 }
 
-enum TaskStatus {
-  todo
-  in_progress
-  blocked
-  done
+' Entities
+
+package "Task entity" <<Frame>> {
+  enum TaskStatus {
+    todo
+    in_progress
+    blocked
+    done
+  }
+
+  enum TaskSource {
+    user
+    ai
+    system
+    template
+    import
+  }
+
+  class Task {
+    +id: UUID
+    +created_at: timestamp
+    +updated_at: timestamp
+    +parent_id: UUID? <<FK Task.id>>
+    +title: string
+    +status: TaskStatus
+    +actor: Actor
+    +source: TaskSource
+  }
+
+  Task "0..1" --> "0..*" Task : parent_id
+  Task --> TaskStatus : status
+  Task -up-> Actor : actor
+  Task --> TaskSource : source
+
+  note bottom of Task
+    Invariants:
+    - updated_at >= created_at
+    - parent_id exists if set
+    - parent_id != id if set
+    - title is not empty
+    - status, actor, and source are valid
+  end note
 }
 
-enum TaskSource {
-  user
-  ai
-  system
-  template
-  import
+package "TaskDialogEvent entity" <<Frame>> {
+  enum TaskDialogEventType {
+    task_proposed
+    task_accepted
+    task_started
+    task_progress
+    task_refused
+    task_done
+  }
+
+  class TaskDialogEvent {
+    +id: UUID
+    +created_at: timestamp
+    +task_id: UUID <<FK Task.id>>
+    +type: TaskDialogEventType
+    +actor: Actor
+  }
+
+  TaskDialogEvent "0..*" -right-> "1" Task : task_id
+  TaskDialogEvent --> TaskDialogEventType : type
+  TaskDialogEvent -up-> Actor : actor
+
+  note bottom of TaskDialogEvent
+    Invariants:
+    - append-only
+    - task_id exists
+    - type and actor are valid
+  end note
 }
 
-enum TaskDialogEventType {
-  task_proposed
-  task_accepted
-  task_started
-  task_progress
-  task_refused
-  task_done
+package "UserStateEvent entity" <<Frame>> {
+  enum UserState {
+    work
+    household
+    rest
+    sleep
+    unavailable
+  }
+
+  class UserStateEvent {
+    +id: UUID
+    +created_at: timestamp
+    +state: UserState
+    +actor: Actor
+  }
+
+  UserStateEvent --> UserState : state
+  UserStateEvent -up-> Actor : actor
+
+  note bottom of UserStateEvent
+    Invariants:
+    - append-only
+    - state and actor are valid
+  end note
 }
-
-enum UserState {
-  work
-  household
-  rest
-  sleep
-  unavailable
-}
-
-' Classes
-
-class Task {
-  +id: UUID
-  +created_at: timestamp
-  +updated_at: timestamp
-  +parent_id: UUID? <<FK Task.id>>
-  +title: string
-  +status: TaskStatus
-  +actor: Actor
-  +source: TaskSource
-}
-
-class TaskDialogEvent {
-  +id: UUID
-  +created_at: timestamp
-  +task_id: UUID <<FK Task.id>>
-  +type: TaskDialogEventType
-  +actor: Actor
-}
-
-class UserStateEvent {
-  +id: UUID
-  +created_at: timestamp
-  +state: UserState
-  +actor: Actor
-}
-
-' Relationships
-
-Task "0..*" <-- "0..1" Task : parent_id
-Task "1" <-- "0..*" TaskDialogEvent : task_id
-Actor <-- Task : actor
-Actor <-- TaskDialogEvent : actor
-Actor <-- UserStateEvent : actor
-TaskStatus <-- Task : status
-TaskSource <-- Task : source
-TaskDialogEventType <-- TaskDialogEvent : type
-UserState <-- UserStateEvent : state
-
-' Notes
-
-note bottom of Task
-  Invariants:
-  - updated_at >= created_at
-  - parent_id exists if set
-  - parent_id != id if set
-  - title is not empty
-  - status, actor, and source are valid
-end note
-
-note bottom of TaskDialogEvent
-  Invariants:
-  - append-only
-  - task_id exists
-  - type and actor are valid
-end note
-
-note bottom of UserStateEvent
-  Invariants:
-  - append-only
-  - state and actor are valid
-end note
 
 @enduml
