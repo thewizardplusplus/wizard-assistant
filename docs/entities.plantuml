@@ -1,5 +1,6 @@
 @startuml
 
+title Сущности
 hide empty methods
 
 ' Common types
