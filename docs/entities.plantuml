@@ -32,12 +32,6 @@ enum TaskDialogEventType {
   task_progress
   task_refused
   task_done
-  task_status_set
-}
-
-enum UserStateEventType {
-  state_set
-  state_cleared
 }
 
 enum UserState {
@@ -72,8 +66,7 @@ class TaskDialogEvent {
 class UserStateEvent {
   +id: UUID
   +created_at: timestamp
-  +type: UserStateEventType
-  +state: UserState?
+  +state: UserState
   +actor: Actor
 }
 
@@ -81,21 +74,22 @@ class UserStateEvent {
 
 Task "0..*" <-- "0..1" Task : parent_id
 Task "1" <-- "0..*" TaskDialogEvent : task_id
-Actor --* Task
-Actor --* TaskDialogEvent
-Actor --* UserStateEvent
-TaskStatus --* Task
-TaskSource --* Task
-TaskDialogEventType --* TaskDialogEvent
-UserStateEventType --* UserStateEvent
-UserState --* UserStateEvent
+Actor <-- Task : actor
+Actor <-- TaskDialogEvent : actor
+Actor <-- UserStateEvent : actor
+TaskStatus <-- Task : status
+TaskSource <-- Task : source
+TaskDialogEventType <-- TaskDialogEvent : type
+UserState <-- UserStateEvent : state
+
+' Notes
 
 note bottom of Task
   Invariants:
   - updated_at >= created_at
   - parent_id exists if set
-  - parent_id != id
-  - title not 
+  - parent_id != id if set
+  - title is not empty
   - status, actor, and source are valid
 end note
 
@@ -109,9 +103,7 @@ end note
 note bottom of UserStateEvent
   Invariants:
   - append-only
-  - type, state (if set), and actor are valid
-  - if type == state_set then state != null
-
+  - state and actor are valid
 end note
 
 @enduml
